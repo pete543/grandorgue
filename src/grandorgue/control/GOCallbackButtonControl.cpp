@@ -18,7 +18,7 @@ GOCallbackButtonControl::GOCallbackButtonControl(
   bool isPiston,
   bool isHoldable)
   : GOButtonControl(
-      organModel, OBJECT_TYPE_BUTTON, MIDI_RECV_SETTER, isPushbutton, isPiston),
+    organModel, OBJECT_TYPE_BUTTON, MIDI_RECV_SETTER, isPushbutton, isPiston),
     m_callback(callback),
     m_IsHoldable(isHoldable) {}
 
