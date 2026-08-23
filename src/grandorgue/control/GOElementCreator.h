@@ -29,6 +29,8 @@ public:
     bool is_pushbutton;
     bool is_piston;
     const GOMidiObjectContext *p_MidiContext = nullptr;
+    // Whether press and release states must both reach ButtonStateChanged().
+    bool is_holdable = false;
   };
 
   const ButtonDefinitionEntry *p_ButtonDefinitions;

@@ -16,7 +16,11 @@ void GOElementCreator::CreateButtons(
        !pEntry->name.IsEmpty() && pEntry->value >= 0;
        pEntry++) {
     GOCallbackButtonControl *pButton = new GOCallbackButtonControl(
-      organModel, this, pEntry->is_pushbutton, pEntry->is_piston);
+      organModel,
+      this,
+      pEntry->is_pushbutton,
+      pEntry->is_piston,
+      pEntry->is_holdable);
     const unsigned buttonIndex = (unsigned)pEntry->value;
 
     pButton->SetHardName(pEntry->name);
