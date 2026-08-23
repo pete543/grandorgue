@@ -71,9 +71,6 @@ GOGUIPanelView::GOGUIPanelView(
   // what scaling is needed to fit the content completely to the window.
   wxSize scaledsize = m_panelwidget->SetInitialSize(topWindow->GetClientSize());
 
-  topWindow->Show();
-  topWindow->Update();
-
   // Ensure that scrollbars will appear when they are needed
   // Current design aims for avoiding this as much as possible
   this->SetScrollRate(5, 5);
@@ -88,6 +85,12 @@ GOGUIPanelView::GOGUIPanelView(
     m_panelwidget->CentreOnParent(wxHORIZONTAL);
   if (actualsize.GetHeight() > scaledsize.GetHeight())
     m_panelwidget->CentreOnParent(wxVERTICAL);
+
+  // Do not expose the window until the panel has reached its final position.
+  // Otherwise, wxMSW may paint it at (0, 0) first and leave that image in the
+  // newly exposed margin when the panel is subsequently centered.
+  topWindow->Show();
+  topWindow->Update();
 
   m_panel->SetView(this);
 
