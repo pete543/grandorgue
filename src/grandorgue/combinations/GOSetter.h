@@ -243,7 +243,6 @@ private:
   // Display the current sequencer position on m_PosDisplay in the 00N format
   void DisplayPos();
 
-  unsigned GetMemoryLevel() const { return m_bank + 1; }
   void SetMemoryLevel(unsigned level);
   /** Move one level in direction, wrapping at both ends. */
   void ChangeMemoryLevel(int direction);
@@ -380,6 +379,7 @@ public:
   void Prev();
   void Push();
   unsigned GetPosition();
+  unsigned GetMemoryLevel() const { return m_bank + 1; }
   void UpdatePosition(int pos);
   void SetPosition(int pos, bool push = true);
 
