@@ -254,10 +254,20 @@ void GOTestDivisionalSetter::TestGeneralMemoryLevels::run() {
 
   const auto assertLevel = [&](unsigned expectedLevel) {
     GOAssert(
+      setter.GetMemoryLevel() == expectedLevel,
+      "The general memory level getter should return the visible level");
+    GOAssert(
       setter.GetLabelControl(wxT("GeneralLabel"), false)->GetContent()
         == wxString::Format(wxT("%u"), expectedLevel),
       "The general memory level should be displayed numerically");
   };
+
+  assertLevel(1);
+  for (const unsigned level : {1U, 20U, 21U, GOSetter::MAX_MEMORY_LEVEL}) {
+    setter.SetMemoryLevel(level);
+    assertLevel(level);
+  }
+  setter.SetMemoryLevel(1);
 
   // The GUI/MIDI hold path moves on press and does not move again on release.
   pNext->Press();

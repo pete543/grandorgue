@@ -112,7 +112,7 @@ EVT_MENU(wxID_ABOUT, GOAppWindow::OnHelpAbout)
 EVT_COMMAND(0, wxEVT_WINTITLE, GOAppWindow::OnSetTitle)
 EVT_MENU(ID_VOLUME, GOAppWindow::OnSettingsVolume)
 EVT_MENU(ID_POLYPHONY, GOAppWindow::OnSettingsPolyphony)
-EVT_MENU(ID_MEMORY, GOAppWindow::OnSettingsMemoryEnter)
+EVT_MENU(ID_MEMORY, GOAppWindow::OnSettingsMemoryLevel)
 EVT_MENU(ID_TRANSPOSE, GOAppWindow::OnSettingsTranspose)
 EVT_MENU(ID_RELEASELENGTH, GOAppWindow::OnSettingsReleaseLength)
 EVT_MENU_RANGE(ID_PANEL_FIRST, ID_PANEL_LAST, GOAppWindow::OnPanel)
@@ -127,10 +127,10 @@ EVT_COMMAND(
 EVT_CHOICE(ID_RELEASELENGTH_SELECT, GOAppWindow::OnSettingsReleaseLength)
 EVT_TEXT(ID_METER_POLY_SPIN, GOAppWindow::OnSettingsPolyphony)
 EVT_TEXT_ENTER(ID_METER_POLY_SPIN, GOAppWindow::OnSettingsPolyphony)
-EVT_TEXT(ID_METER_FRAME_SPIN, GOAppWindow::OnSettingsMemory)
-EVT_TEXT_ENTER(ID_METER_FRAME_SPIN, GOAppWindow::OnSettingsMemoryEnter)
-EVT_COMMAND(ID_METER_FRAME_SPIN, wxEVT_SETVALUE, GOAppWindow::OnChangeSetter)
-EVT_SLIDER(ID_METER_FRAME_SPIN, GOAppWindow::OnChangeSetter)
+EVT_TEXT(ID_METER_MEMORY_LEVEL_SPIN, GOAppWindow::OnSettingsMemoryLevel)
+EVT_TEXT_ENTER(ID_METER_MEMORY_LEVEL_SPIN, GOAppWindow::OnSettingsMemoryLevel)
+EVT_COMMAND(
+  ID_METER_MEMORY_LEVEL_SPIN, wxEVT_SETVALUE, GOAppWindow::OnChangeMemoryLevel)
 EVT_TEXT(ID_METER_AUDIO_SPIN, GOAppWindow::OnSettingsVolume)
 EVT_TEXT_ENTER(ID_METER_AUDIO_SPIN, GOAppWindow::OnSettingsVolume)
 EVT_COMMAND(ID_METER_AUDIO_SPIN, wxEVT_SETVALUE, GOAppWindow::OnChangeVolume)
@@ -171,7 +171,7 @@ GOAppWindow::GOAppWindow(
     m_Transpose(NULL),
     m_ReleaseLength(NULL),
     m_Polyphony(NULL),
-    m_SetterPosition(NULL),
+    m_MemoryLevel(NULL),
     m_Volume(NULL),
     m_listener(),
     m_Title(title),
@@ -309,17 +309,17 @@ GOAppWindow::GOAppWindow(
     GetImage_memory(),
     _("Memory Level"),
     wxITEM_NORMAL);
-  m_SetterPosition = new wxSpinCtrl(
+  m_MemoryLevel = new wxSpinCtrl(
     m_ToolBar,
-    ID_METER_FRAME_SPIN,
+    ID_METER_MEMORY_LEVEL_SPIN,
     wxEmptyString,
     wxDefaultPosition,
     wxSize(50, wxDefaultCoord),
     wxSP_ARROW_KEYS,
-    0,
-    999);
-  m_ToolBar->AddControl(m_SetterPosition);
-  m_SetterPosition->SetValue(0);
+    1,
+    100,
+    1);
+  m_ToolBar->AddControl(m_MemoryLevel);
 
   m_ToolBar->AddTool(
     ID_VOLUME, _("&Volume"), GetImage_volume(), _("Volume"), wxITEM_NORMAL);
@@ -1304,18 +1304,11 @@ void GOAppWindow::OnSettingsPolyphony(wxCommandEvent &event) {
   m_SamplerUsage->ResetClip();
 }
 
-void GOAppWindow::OnSettingsMemoryEnter(wxCommandEvent &event) {
-  long n = m_SetterPosition->GetValue();
+void GOAppWindow::OnSettingsMemoryLevel(wxCommandEvent &event) {
+  long n = m_MemoryLevel->GetValue();
 
   if (p_OrganController)
-    p_OrganController->GetSetter()->SetPosition(n);
-}
-
-void GOAppWindow::OnSettingsMemory(wxCommandEvent &event) {
-  long n = m_SetterPosition->GetValue();
-
-  if (p_OrganController)
-    p_OrganController->GetSetter()->UpdatePosition(n);
+    p_OrganController->GetSetter()->SetMemoryLevel(n);
 }
 
 void GOAppWindow::OnSettingsTranspose(wxCommandEvent &event) {
@@ -1352,8 +1345,8 @@ void GOAppWindow::OnChangeTranspose(wxCommandEvent &event) {
   m_Transpose->SetValue(event.GetInt());
 }
 
-void GOAppWindow::OnChangeSetter(wxCommandEvent &event) {
-  m_SetterPosition->SetValue(event.GetInt());
+void GOAppWindow::OnChangeMemoryLevel(wxCommandEvent &event) {
+  m_MemoryLevel->SetValue(event.GetInt());
 }
 
 void GOAppWindow::OnChangeVolume(wxCommandEvent &event) {

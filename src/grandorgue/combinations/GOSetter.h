@@ -243,8 +243,6 @@ private:
   // Display the current sequencer position on m_PosDisplay in the 00N format
   void DisplayPos();
 
-  unsigned GetMemoryLevel() const { return m_bank + 1; }
-  void SetMemoryLevel(unsigned level);
   /** Move one level in direction, wrapping at both ends. */
   void ChangeMemoryLevel(int direction);
   /** Move immediately and arm accelerated repetition for a held button. */
@@ -317,6 +315,8 @@ public:
 
   const GOSetterState &GetState() const { return m_state; }
   bool IsCmbModified() const { return m_state.m_IsModified; }
+  unsigned GetMemoryLevel() const { return m_bank + 1; }
+  void SetMemoryLevel(unsigned level);
 
   /**
    * Save all combinations to yaml as a map
