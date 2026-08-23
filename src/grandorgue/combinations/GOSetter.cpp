@@ -1529,9 +1529,14 @@ void GOSetter::SetMemoryLevel(unsigned level) {
   m_BankDisplay.SetContent(wxString::Format(wxT("%u"), level));
 
   if (level != oldLevel) {
-    wxCommandEvent event(wxEVT_SETVALUE, ID_METER_MEMORY_LEVEL_SPIN);
-    event.SetInt(level);
-    wxTheApp->GetTopWindow()->GetEventHandler()->AddPendingEvent(event);
+    wxWindow *const topWindow = wxTheApp ? wxTheApp->GetTopWindow() : nullptr;
+
+    if (topWindow) {
+      wxCommandEvent event(wxEVT_SETVALUE, ID_METER_MEMORY_LEVEL_SPIN);
+
+      event.SetInt(level);
+      topWindow->GetEventHandler()->AddPendingEvent(event);
+    }
   }
 }
 
