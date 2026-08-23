@@ -64,6 +64,10 @@ public:
   }
 
   virtual void Push();
+  /** Begin a potentially held activation. The default is a single push. */
+  virtual void Press() { Push(); }
+  /** End a potentially held activation. Most buttons need no release event. */
+  virtual void Release() {}
   virtual void SetButtonState(bool on) {}
   virtual void Display(bool onoff);
 

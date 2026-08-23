@@ -11,6 +11,8 @@
 #include <unordered_set>
 
 #include <wx/arrstr.h>
+#include <wx/stopwatch.h>
+#include <wx/timer.h>
 
 #include "ptrvector.h"
 
@@ -40,6 +42,9 @@ class GOSetter : private GOOrganLifecycleListener,
                  public GOSaveableObject,
                  public GOSaveableToYaml {
 public:
+  /** Maximum number of banked general-combination memory levels. */
+  static constexpr unsigned MAX_MEMORY_LEVEL = 100;
+
   enum {
     ID_SETTER_PREV = 0,
     ID_SETTER_NEXT,
@@ -159,6 +164,15 @@ public:
   static const ButtonDefinitionEntry *const P_BUTTON_DEFS;
 
 private:
+  class MemoryLevelRepeatTimer : public wxTimer {
+  private:
+    GOSetter &r_Setter;
+
+  public:
+    MemoryLevelRepeatTimer(GOSetter &setter) : r_Setter(setter) {}
+    void Notify() override;
+  };
+
   GOOrganController *m_OrganController;
 
   // working with combination files
@@ -179,6 +193,9 @@ private:
   // The number already entered in the numeric mode
   unsigned m_NumericModeAccomulated;
   unsigned m_bank;
+  int m_MemoryLevelRepeatButtonId;
+  MemoryLevelRepeatTimer m_MemoryLevelRepeatTimer;
+  wxStopWatch m_MemoryLevelRepeatWatch;
   unsigned m_crescendopos;
   unsigned m_crescendobank;
   ptr_vector<GOGeneralCombination> m_framegeneral;
@@ -225,6 +242,17 @@ private:
 
   // Display the current sequencer position on m_PosDisplay in the 00N format
   void DisplayPos();
+
+  unsigned GetMemoryLevel() const { return m_bank + 1; }
+  void SetMemoryLevel(unsigned level);
+  /** Move one level in direction, wrapping at both ends. */
+  void ChangeMemoryLevel(int direction);
+  /** Move immediately and arm accelerated repetition for a held button. */
+  void StartMemoryLevelRepeat(int buttonId);
+  /** Cancel repetition if buttonId is the currently held direction. */
+  void StopMemoryLevelRepeat(int buttonId);
+  /** Perform a timed repeat step and schedule its accelerated successor. */
+  void RepeatMemoryLevel();
 
   void ButtonStateChanged(int id, bool newState) override;
 

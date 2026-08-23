@@ -42,9 +42,19 @@ private:
     std::string GetName() override { return TEST_NAME; }
   };
 
+  class TestGeneralMemoryLevels : public GOCommonControllerTest {
+  private:
+    static std::string TEST_NAME;
+
+  public:
+    virtual void run() override;
+    std::string GetName() override { return TEST_NAME; }
+  };
+
   TestWithoutPedal testWithoutPedal;
   TestWithPedal testWithPedal;
   TestDivisionalCoupler testDivisionalCoupler;
+  TestGeneralMemoryLevels testGeneralMemoryLevels;
 };
 
 #endif /* GOTESTDIVISIONALSETTER_H */

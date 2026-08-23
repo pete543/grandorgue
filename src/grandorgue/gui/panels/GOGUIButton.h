@@ -52,6 +52,7 @@ public:
   void Layout();
 
   bool HandleMousePress(int x, int y, bool right, GOGUIMouseState &state);
+  void HandleMouseRelease() override;
   void PrepareDraw(double scale, GOBitmap *background);
   void Draw(GODC &dc);
 };

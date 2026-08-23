@@ -9,6 +9,8 @@
 #include <filesystem>
 #include <memory>
 
+#include <yaml-cpp/yaml.h>
+
 #include "combinations/GODivisionalSetter.h"
 #include "combinations/GOSetter.h"
 #include "config/GOConfigFileReader.h"
@@ -232,4 +234,114 @@ void GOTestDivisionalSetter::TestDivisionalCoupler::run() {
     pSwitch2->IsEngaged(),
     "Recalling manual 1's divisional should also re-engage switch 2 through "
     "the coupler");
+}
+
+std::string GOTestDivisionalSetter::TestGeneralMemoryLevels::TEST_NAME
+  = CLASS_NAME + "::TestGeneralMemoryLevels";
+
+void GOTestDivisionalSetter::TestGeneralMemoryLevels::run() {
+  const std::unique_ptr<GODivisionalSetter> pDivSetter
+    = load_test_organ(*controller, *this, "WithPedal.organ");
+  GOSetter &setter = *controller->GetSetter();
+  GOButtonControl *const pSet = setter.GetButtonControl(wxT("Set"), false);
+  GOButtonControl *const pGeneral
+    = setter.GetButtonControl(wxT("General01"), false);
+  GOButtonControl *const pPrevious
+    = setter.GetButtonControl(wxT("GeneralPrev"), false);
+  GOButtonControl *const pNext
+    = setter.GetButtonControl(wxT("GeneralNext"), false);
+  GOSwitch *const pSwitch = controller->GetSwitch(0);
+
+  const auto assertLevel = [&](unsigned expectedLevel) {
+    GOAssert(
+      setter.GetLabelControl(wxT("GeneralLabel"), false)->GetContent()
+        == wxString::Format(wxT("%u"), expectedLevel),
+      "The general memory level should be displayed numerically");
+  };
+
+  // The GUI/MIDI hold path moves on press and does not move again on release.
+  pNext->Press();
+  assertLevel(2);
+  pNext->Release();
+  assertLevel(2);
+  pPrevious->Push();
+  assertLevel(1);
+
+  // Both ends wrap, rather than stopping at the old boundaries.
+  pPrevious->Push();
+  assertLevel(GOSetter::MAX_MEMORY_LEVEL);
+  pNext->Push();
+  assertLevel(1);
+
+  for (unsigned level = 2; level <= 20; level++)
+    pNext->Push();
+  assertLevel(20);
+  pNext->Push();
+  assertLevel(21);
+  pPrevious->Push();
+  assertLevel(20);
+
+  for (unsigned level = 21; level <= GOSetter::MAX_MEMORY_LEVEL; level++) {
+    pNext->Push();
+    assertLevel(level);
+  }
+  pNext->Push();
+  assertLevel(1);
+
+  pPrevious->Push();
+  assertLevel(GOSetter::MAX_MEMORY_LEVEL);
+  for (unsigned level = GOSetter::MAX_MEMORY_LEVEL - 1; level > 0; level--) {
+    pPrevious->Push();
+    assertLevel(level);
+  }
+
+  // Store a distinctive combination at level 100 and serialize it. The new
+  // numeric YAML key also proves that the last level has its own storage.
+  pPrevious->Push();
+  assertLevel(GOSetter::MAX_MEMORY_LEVEL);
+  pSwitch->SetButtonState(true);
+  pSet->Push();
+  pGeneral->Push();
+  pSet->Push();
+
+  YAML::Node saved;
+  setter.ToYaml(saved);
+  GOAssert(
+    bool(saved["banked-generals"]["100-01"]),
+    "Level 100 should be serialized with a numeric memory-level key");
+
+  // Erase that slot, reload the serialized data, and recall it to verify a
+  // real save/reload round trip rather than merely checking the YAML text.
+  pSwitch->SetButtonState(false);
+  pSet->Push();
+  pGeneral->Push();
+  pSet->Push();
+  setter.FromYaml(saved);
+  pGeneral->Push();
+  GOAssert(
+    pSwitch->IsEngaged(),
+    "Level 100 should recall its combination after save/reload");
+
+  // Legacy levels deliberately retain their established A..T key names.
+  for (unsigned level = GOSetter::MAX_MEMORY_LEVEL; level > 20; level--)
+    pPrevious->Push();
+  pSwitch->SetButtonState(true);
+  pSet->Push();
+  pGeneral->Push();
+  pSet->Push();
+  YAML::Node legacyCompatible;
+  setter.ToYaml(legacyCompatible);
+  GOAssert(
+    bool(legacyCompatible["banked-generals"]["T01"]),
+    "Legacy level 20 should retain its T-prefixed serialization key");
+
+  pSwitch->SetButtonState(false);
+  pSet->Push();
+  pGeneral->Push();
+  pSet->Push();
+  setter.FromYaml(legacyCompatible);
+  pGeneral->Push();
+  GOAssert(
+    pSwitch->IsEngaged(),
+    "An A-T legacy YAML combination should load without conversion");
 }

@@ -848,8 +848,11 @@ void GOGUIPanel::HandleMousePress(int x, int y, bool right) {
 }
 
 void GOGUIPanel::HandleMouseRelease(bool right) {
-  if (!right)
+  if (!right) {
+    if (m_MouseState.GetControl())
+      m_MouseState.GetControl()->HandleMouseRelease();
     m_MouseState.clear();
+  }
 }
 
 void GOGUIPanel::HandleMouseScroll(int x, int y, int amount) {
