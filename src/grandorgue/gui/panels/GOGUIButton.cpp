@@ -396,10 +396,12 @@ bool GOGUIButton::HandleMousePress(
     if (m_ButtonControl->IsReadOnly())
       return true;
 
-    m_ButtonControl->Push();
+    m_ButtonControl->Press();
     return true;
   }
 }
+
+void GOGUIButton::HandleMouseRelease() { m_ButtonControl->Release(); }
 
 void GOGUIButton::PrepareDraw(double scale, GOBitmap *background) {
   m_OnBitmap.BuildTileBitmap(

@@ -8,9 +8,11 @@
 #ifndef GOGUIMOUSESTATE_H
 #define GOGUIMOUSESTATE_H
 
+class GOGUIControl;
+
 class GOGUIMouseState {
   void *m_sequence;
-  void *m_control;
+  GOGUIControl *m_control;
   unsigned m_index;
 
 public:
@@ -26,13 +28,13 @@ public:
 
   void *GetSequence() { return m_sequence; }
 
-  void *GetControl() { return m_control; }
+  GOGUIControl *GetControl() { return m_control; }
 
   unsigned GetIndex() { return m_index; }
 
   void SetSequence(void *sequence) { m_sequence = sequence; }
 
-  void SetControl(void *control) { m_control = control; }
+  void SetControl(GOGUIControl *control) { m_control = control; }
 
   void SetIndex(unsigned index) { m_index = index; }
 };

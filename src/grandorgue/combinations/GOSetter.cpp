@@ -34,9 +34,16 @@
 #include "go_ids.h"
 
 #define FRAME_GENERALS 1000
-#define GENERAL_BANKS 20
 #define GENERALS 50
 #define CRESCENDO_STEPS 32
+
+static constexpr unsigned LEGACY_MEMORY_LEVEL_COUNT = 20;
+static constexpr int MEMORY_LEVEL_REPEAT_INITIAL_DELAY_MS = 400;
+static constexpr int MEMORY_LEVEL_REPEAT_FAST_THRESHOLD_MS = 1200;
+static constexpr int MEMORY_LEVEL_REPEAT_FASTER_THRESHOLD_MS = 2500;
+static constexpr int MEMORY_LEVEL_REPEAT_INITIAL_INTERVAL_MS = 250;
+static constexpr int MEMORY_LEVEL_REPEAT_FAST_INTERVAL_MS = 125;
+static constexpr int MEMORY_LEVEL_REPEAT_FASTER_INTERVAL_MS = 67;
 
 static const char *const SIMPLE_GENERALS = "generals";
 static const char *const BANKED_GENERALS = "banked-generals";
@@ -590,13 +597,15 @@ static const GOElementCreator::ButtonDefinitionEntry BUTTON_DEFS[] = {
    true,
    true,
    false,
-   &MIDI_CONTEXT_BANKED_GENERALS},
+   &MIDI_CONTEXT_BANKED_GENERALS,
+   true},
   {wxT("GeneralNext"),
    GOSetter::ID_SETTER_GENERAL_NEXT,
    true,
    true,
    false,
-   &MIDI_CONTEXT_BANKED_GENERALS},
+   &MIDI_CONTEXT_BANKED_GENERALS,
+   true},
 
   {wxT("CrescendoPrev"),
    GOSetter::ID_SETTER_CRESCENDO_PREV,
@@ -739,6 +748,8 @@ GOSetter::GOSetter(GOOrganController *organController)
     m_NumericModeDigitsEntered(-1),
     m_NumericModeAccomulated(0),
     m_bank(0),
+    m_MemoryLevelRepeatButtonId(-1),
+    m_MemoryLevelRepeatTimer(*this),
     m_crescendopos(0),
     m_crescendobank(0),
     m_framegeneral(0),
@@ -763,7 +774,11 @@ GOSetter::GOSetter(GOOrganController *organController)
   m_OrganController->RegisterControlChangedHandler(this);
 }
 
-GOSetter::~GOSetter() {}
+GOSetter::~GOSetter() { m_MemoryLevelRepeatTimer.Stop(); }
+
+void GOSetter::MemoryLevelRepeatTimer::Notify() {
+  r_Setter.RepeatMemoryLevel();
+}
 
 static const wxString WX_OVERRIDE_MODE = wxT("OverrideMode");
 static const wxString WX_EMPTY_STRING = wxEmptyString;
@@ -780,6 +795,10 @@ wxString GOSetter::GetCrescendoCmbStateName(uint8_t crescendoIdx) const {
 }
 
 void GOSetter::Load(GOConfigReader &cfg) {
+  m_MemoryLevelRepeatTimer.Stop();
+  m_MemoryLevelRepeatButtonId = -1;
+  m_buttons[ID_SETTER_GENERAL_PREV]->Display(false);
+  m_buttons[ID_SETTER_GENERAL_NEXT]->Display(false);
   m_OrganController->RegisterSaveableObject(this);
 
   wxString buffer;
@@ -793,7 +812,7 @@ void GOSetter::Load(GOConfigReader &cfg) {
   }
 
   m_general.resize(0);
-  for (unsigned i = 0; i < GENERALS * GENERAL_BANKS; i++) {
+  for (unsigned i = 0; i < GENERALS * MAX_MEMORY_LEVEL; i++) {
     m_general.push_back(new GOGeneralCombination(*m_OrganController, true));
     buffer.Printf(wxT("SetterGeneral%03d"), i + 1);
     m_general[i]->Load(cfg, buffer);
@@ -1007,7 +1026,14 @@ static wxString general_yaml_key(unsigned i) {
 }
 
 static wxString banked_general_yaml_key(unsigned i) {
-  return wxString::Format(WX_C02U, i / GENERALS + 'A', i % GENERALS + 1);
+  const unsigned level = i / GENERALS + 1;
+
+  // Keep the established A01..T50 names so existing combination files load
+  // unchanged. Levels added after the legacy range use an unambiguous numeric
+  // prefix (for example 21-01 and 100-50).
+  return level <= LEGACY_MEMORY_LEVEL_COUNT
+    ? wxString::Format(WX_C02U, level - 1 + 'A', i % GENERALS + 1)
+    : wxString::Format(wxT("%u-%02u"), level, i % GENERALS + 1);
 }
 
 static wxString crescendo_yaml_key(unsigned i) {
@@ -1330,12 +1356,10 @@ void GOSetter::ButtonStateChanged(int id, bool newState) {
     break;
   case ID_SETTER_GENERAL_PREV:
   case ID_SETTER_GENERAL_NEXT:
-    if (id == ID_SETTER_GENERAL_PREV && m_bank > 0)
-      m_bank--;
-    if (id == ID_SETTER_GENERAL_NEXT && m_bank < GENERAL_BANKS - 1)
-      m_bank++;
-
-    m_BankDisplay.SetContent(wxString::Format(wxT("%c"), m_bank + wxT('A')));
+    if (newState)
+      StartMemoryLevelRepeat(id);
+    else
+      StopMemoryLevelRepeat(id);
     break;
 
   case ID_SETTER_REGULAR:
@@ -1455,7 +1479,7 @@ void GOSetter::PreparePlayback() {
   wxTheApp->GetTopWindow()->GetEventHandler()->AddPendingEvent(event);
   m_CrescendoDisplay.SetContent(
     wxString::Format(wxT("%d"), m_crescendopos + 1));
-  m_BankDisplay.SetContent(wxString::Format(wxT("%c"), m_bank + wxT('A')));
+  m_BankDisplay.SetContent(wxString::Format(wxT("%u"), GetMemoryLevel()));
   UpdateTranspose();
 }
 
@@ -1493,6 +1517,53 @@ void GOSetter::OnCombinationsSaved(const wxString &yamlFile) {
 }
 
 void GOSetter::Update() {}
+
+void GOSetter::SetMemoryLevel(unsigned level) {
+  if (level < 1)
+    level = 1;
+  else if (level > MAX_MEMORY_LEVEL)
+    level = MAX_MEMORY_LEVEL;
+
+  m_bank = level - 1;
+  m_BankDisplay.SetContent(wxString::Format(wxT("%u"), level));
+}
+
+void GOSetter::ChangeMemoryLevel(int direction) {
+  const int zeroBasedLevel
+    = (int(m_bank) + direction + int(MAX_MEMORY_LEVEL)) % int(MAX_MEMORY_LEVEL);
+
+  SetMemoryLevel(zeroBasedLevel + 1);
+}
+
+void GOSetter::StartMemoryLevelRepeat(int buttonId) {
+  m_MemoryLevelRepeatTimer.Stop();
+  m_MemoryLevelRepeatButtonId = buttonId;
+  ChangeMemoryLevel(buttonId == ID_SETTER_GENERAL_NEXT ? 1 : -1);
+  m_MemoryLevelRepeatWatch.Start();
+  m_MemoryLevelRepeatTimer.StartOnce(MEMORY_LEVEL_REPEAT_INITIAL_DELAY_MS);
+}
+
+void GOSetter::StopMemoryLevelRepeat(int buttonId) {
+  if (m_MemoryLevelRepeatButtonId == buttonId) {
+    m_MemoryLevelRepeatTimer.Stop();
+    m_MemoryLevelRepeatButtonId = -1;
+  }
+}
+
+void GOSetter::RepeatMemoryLevel() {
+  if (m_MemoryLevelRepeatButtonId >= 0) {
+    const int elapsedMs = m_MemoryLevelRepeatWatch.Time();
+    const int intervalMs = elapsedMs < MEMORY_LEVEL_REPEAT_FAST_THRESHOLD_MS
+      ? MEMORY_LEVEL_REPEAT_INITIAL_INTERVAL_MS
+      : elapsedMs < MEMORY_LEVEL_REPEAT_FASTER_THRESHOLD_MS
+      ? MEMORY_LEVEL_REPEAT_FAST_INTERVAL_MS
+      : MEMORY_LEVEL_REPEAT_FASTER_INTERVAL_MS;
+
+    ChangeMemoryLevel(
+      m_MemoryLevelRepeatButtonId == ID_SETTER_GENERAL_NEXT ? 1 : -1);
+    m_MemoryLevelRepeatTimer.StartOnce(intervalMs);
+  }
+}
 
 void GOSetter::SetterActive(bool on) {
   m_buttons[ID_SETTER_SET]->SetButtonState(on);

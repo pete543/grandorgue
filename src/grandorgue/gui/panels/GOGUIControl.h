@@ -58,6 +58,7 @@ public:
   virtual const wxRect &GetBoundingRect();
   virtual bool HandleMousePress(
     int x, int y, bool right, GOGUIMouseState &state);
+  virtual void HandleMouseRelease() {}
   virtual bool HandleMouseScroll(int x, int y, int amount);
 };
 

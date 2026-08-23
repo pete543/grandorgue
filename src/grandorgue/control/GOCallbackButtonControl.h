@@ -19,14 +19,24 @@ public:
 
 protected:
   GOButtonCallback *m_callback;
+  bool m_IsHoldable;
+
+  void OnMidiReceived(
+    const GOMidiEvent &event,
+    GOMidiMatchType matchType,
+    int key,
+    int value) override;
 
 public:
   GOCallbackButtonControl(
     GOOrganModel &organModel,
     GOButtonCallback *callback,
     bool isPushbutton,
-    bool isPiston = false);
+    bool isPiston = false,
+    bool isHoldable = false);
   void Push(void) override;
+  void Press() override;
+  void Release() override;
   void SetButtonState(bool on) override;
 };
 
