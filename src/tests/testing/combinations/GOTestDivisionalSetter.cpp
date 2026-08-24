@@ -262,8 +262,13 @@ void GOTestDivisionalSetter::TestGeneralMemoryLevels::run() {
       "The general memory level should be displayed numerically");
   };
 
+  GOAssert(
+    setter.GetMemoryLevel() == 1,
+    "The general memory level should start at level 1");
+
+  setter.SetMemoryLevel(1);
   assertLevel(1);
-  for (const unsigned level : {1U, 20U, 21U, GOSetter::MAX_MEMORY_LEVEL}) {
+  for (const unsigned level : {20U, 21U, GOSetter::MAX_MEMORY_LEVEL}) {
     setter.SetMemoryLevel(level);
     assertLevel(level);
   }
