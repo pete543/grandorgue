@@ -266,6 +266,8 @@ void GOTestDivisionalSetter::TestGeneralMemoryLevels::run() {
     setter.GetMemoryLevel() == 1,
     "The general memory level should start at level 1");
 
+  // The headless model-loading helper deliberately skips PreparePlayback(),
+  // so explicitly synchronize the label before checking its displayed value.
   setter.SetMemoryLevel(1);
   assertLevel(1);
   for (const unsigned level : {20U, 21U, GOSetter::MAX_MEMORY_LEVEL}) {
