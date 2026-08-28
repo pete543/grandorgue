@@ -1473,9 +1473,9 @@ void GOSetter::PreparePlayback() {
   DisplayPos();
   m_NameDisplay.SetContent(m_OrganController->GetOrganName());
 
-  wxCommandEvent event(wxEVT_SETVALUE, ID_METER_FRAME_SPIN);
+  wxCommandEvent event(wxEVT_SETVALUE, ID_METER_MEMORY_LEVEL_SPIN);
 
-  event.SetInt(m_pos);
+  event.SetInt(GetMemoryLevel());
   wxTheApp->GetTopWindow()->GetEventHandler()->AddPendingEvent(event);
   m_CrescendoDisplay.SetContent(
     wxString::Format(wxT("%d"), m_crescendopos + 1));
@@ -1524,8 +1524,20 @@ void GOSetter::SetMemoryLevel(unsigned level) {
   else if (level > MAX_MEMORY_LEVEL)
     level = MAX_MEMORY_LEVEL;
 
+  const unsigned oldLevel = GetMemoryLevel();
   m_bank = level - 1;
   m_BankDisplay.SetContent(wxString::Format(wxT("%u"), level));
+
+  if (level != oldLevel) {
+    wxWindow *const topWindow = wxTheApp ? wxTheApp->GetTopWindow() : nullptr;
+
+    if (topWindow) {
+      wxCommandEvent event(wxEVT_SETVALUE, ID_METER_MEMORY_LEVEL_SPIN);
+
+      event.SetInt(level);
+      topWindow->GetEventHandler()->AddPendingEvent(event);
+    }
+  }
 }
 
 void GOSetter::ChangeMemoryLevel(int direction) {
@@ -1651,7 +1663,6 @@ void GOSetter::UpdatePosition(int pos) {
 
 void GOSetter::SetPosition(int pos, bool push) {
   wxString buffer;
-  int old_pos = m_pos;
   while (pos < 0)
     pos += m_framegeneral.size();
   while (pos >= (int)m_framegeneral.size())
@@ -1662,11 +1673,6 @@ void GOSetter::SetPosition(int pos, bool push) {
     m_buttons[ID_SETTER_HOME]->Display(m_pos == 0);
   }
   DisplayPos();
-  if (pos != old_pos) {
-    wxCommandEvent event(wxEVT_SETVALUE, ID_METER_FRAME_SPIN);
-    event.SetInt(m_pos);
-    wxTheApp->GetTopWindow()->GetEventHandler()->AddPendingEvent(event);
-  }
 }
 
 void GOSetter::Crescendo(int newpos, bool force) {

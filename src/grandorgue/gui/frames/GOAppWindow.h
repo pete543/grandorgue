@@ -70,7 +70,7 @@ private:
   wxSpinCtrl *m_Transpose;
   wxChoice *m_ReleaseLength;
   wxSpinCtrl *m_Polyphony;
-  wxSpinCtrl *m_SetterPosition;
+  wxSpinCtrl *m_MemoryLevel;
   wxSpinCtrl *m_Volume;
   GOMidiListener m_listener;
   wxString m_Title;
@@ -173,14 +173,13 @@ private:
 
   void OnSettingsVolume(wxCommandEvent &event);
   void OnSettingsPolyphony(wxCommandEvent &event);
-  void OnSettingsMemory(wxCommandEvent &event);
-  void OnSettingsMemoryEnter(wxCommandEvent &event);
+  void OnSettingsMemoryLevel(wxCommandEvent &event);
   void OnSettingsTranspose(wxCommandEvent &event);
   void OnSettingsReleaseLength(wxCommandEvent &event);
 
   void OnKeyCommand(wxKeyEvent &event);
   void OnChangeTranspose(wxCommandEvent &event);
-  void OnChangeSetter(wxCommandEvent &event);
+  void OnChangeMemoryLevel(wxCommandEvent &event);
   void OnChangeVolume(wxCommandEvent &event);
   void OnPanel(wxCommandEvent &event);
 
